@@ -8,6 +8,12 @@
 #include <QFileDialog>
 #include <QThread>
 
+#define PRO_VERSION "V1.00"
+void MainWindow::on_actionAbout_triggered()
+{
+    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-05-01\n")).arg(PRO_VERSION));
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)

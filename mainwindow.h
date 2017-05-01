@@ -40,6 +40,8 @@ private slots:
 
     void on_checkBox_saveLog_clicked();
 
+    void on_actionAbout_triggered();
+
 private:
     Ui::MainWindow *ui;
     TcpIpServer *server;

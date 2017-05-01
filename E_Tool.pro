@@ -35,3 +35,6 @@ HEADERS  += mainwindow.h \
     tcpipserver.h
 
 FORMS    += mainwindow.ui
+
+RESOURCES += \
+    resource.qrc
