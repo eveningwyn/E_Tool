@@ -5,6 +5,7 @@
 #include "tcpipserver.h"
 #include "tcpipclient.h"
 #include <QMutex>
+#include <QTimer>
 
 namespace Ui {
 class MainWindow;
@@ -42,6 +43,14 @@ private slots:
 
     void on_actionAbout_triggered();
 
+    void initDoneTimerTimeout();//只用于ICT测试---------------------
+
+    void writeFileTimerTimeout();//只用于ICT测试---------------------
+
+    void startTestTimerTimeout();//只用于ICT测试---------------------
+
+    void sortCompleteTimerTimeout();//只用于ICT测试---------------------
+
 private:
     Ui::MainWindow *ui;
     TcpIpServer *server;
@@ -53,6 +62,10 @@ private:
     bool client_disconn;
     QString logFileName;
     void saveLog(QString strMsg);
+    QTimer *initDoneTimer;//只用于ICT测试---------------------
+    QTimer *writeFileTimer;//只用于ICT测试---------------------
+    QTimer *startTestTimer;//只用于ICT测试---------------------
+    QTimer *sortCompleteTimer;//只用于ICT测试---------------------
 };
 
 #endif // MAINWINDOW_H

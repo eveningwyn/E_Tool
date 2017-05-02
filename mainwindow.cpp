@@ -8,6 +8,8 @@
 #include <QFileDialog>
 #include <QThread>
 
+#define TIMER_TIME_OUT 500
+
 #define PRO_VERSION "V1.00"
 void MainWindow::on_actionAbout_triggered()
 {
@@ -31,6 +33,15 @@ MainWindow::MainWindow(QWidget *parent) :
     msgFileName = "";
     logFileName = "";
     client_disconn = true;;
+
+    initDoneTimer = new QTimer(this);
+    writeFileTimer = new QTimer(this);
+    startTestTimer = new QTimer(this);
+    sortCompleteTimer = new QTimer(this);
+    connect(initDoneTimer,&QTimer::timeout,this,&MainWindow::initDoneTimerTimeout);
+    connect(writeFileTimer,&QTimer::timeout,this,&MainWindow::writeFileTimerTimeout);
+    connect(startTestTimer,&QTimer::timeout,this,&MainWindow::startTestTimerTimeout);
+    connect(sortCompleteTimer,&QTimer::timeout,this,&MainWindow::sortCompleteTimerTimeout);
 }
 
 MainWindow::~MainWindow()
@@ -296,6 +307,35 @@ void MainWindow::client_readData(int clientID, QString IP, int Port, QString msg
     IP = ui->lineEdit_serverIP->text();
     Port = ui->lineEdit_serverPort->text().toInt();
     showInformation(1,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
+
+    if(msg.contains("@Robot init done ACK"))//只用于ICT测试---------------------
+    {
+        if(initDoneTimer->isActive())
+            initDoneTimer->stop();
+    }
+    if(msg.contains("@Test ready ACK"))//只用于ICT测试---------------------
+    {
+        if(startTestTimer->isActive())
+            startTestTimer->stop();
+
+        QThread::msleep(100);
+        QString ICT_path = QString("%1:\\%2").arg("V").arg("PDM&ERP/UR/Result.txt");
+        QFile file(ICT_path);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream out(&file);
+            QApplication::setOverrideCursor(Qt::WaitCursor);//鼠标指针变为等待状态
+            out << "C4-L1N,A,ICT,J1741705,3I1101, ,ICT_V04R03,AH13012400,P, , ,0,";
+            QApplication::restoreOverrideCursor();//鼠标指针恢复原来的状态
+            file.close();
+        }
+    }
+    if(msg.contains("@Sort complete ACK"))//只用于ICT测试---------------------
+    {
+        if(sortCompleteTimer->isActive())
+            sortCompleteTimer->stop();
+    }
+
     msg.replace(client->prefix,"");
     msg.replace(client->suffix,"");
     checkMsg(msg);
@@ -305,6 +345,33 @@ void MainWindow::client_readData(int clientID, QString IP, int Port, QString msg
         msg = QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix);
         client->clientSendData(msg);
         showInformation(0,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
+
+        if(msg.contains("@Robot init ACK"))//只用于ICT测试---------------------
+        {
+            if(!initDoneTimer->isActive())
+                initDoneTimer->start(TIMER_TIME_OUT);
+            return;
+        }
+        if(msg.contains("@Read SN Done ACK"))//只用于ICT测试---------------------
+        {
+            if(!writeFileTimer->isActive())
+                writeFileTimer->start(TIMER_TIME_OUT);
+            return;
+        }
+        if(msg.contains("@Scan done ACK"))//只用于ICT测试---------------------
+        {
+            if(!startTestTimer->isActive())
+                startTestTimer->start(TIMER_TIME_OUT);
+            if(writeFileTimer->isActive())
+                writeFileTimer->stop();
+            return;
+        }
+        if(msg.contains("@Pass done ACK") || msg.contains("@Fail done ACK"))//只用于ICT测试---------------------
+        {
+            if(!sortCompleteTimer->isActive())
+                sortCompleteTimer->start(TIMER_TIME_OUT);
+            return;
+        }
     }
 }
 
@@ -347,4 +414,41 @@ void MainWindow::saveLog(QString strMsg)
             file.close();
         }
     }
+}
+
+void MainWindow::initDoneTimerTimeout()//只用于ICT测试---------------------
+{
+    QString msg = QString("%1%2%3").arg(client->prefix).arg("Robot init done").arg(client->suffix);
+    client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
+    showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
+}
+
+void MainWindow::writeFileTimerTimeout()
+{
+    QThread::msleep(100);
+    QString ICT_path = QString("%1:\\%2").arg("V").arg("PDM&ERP/UR/Request.txt");
+    QFile file1(ICT_path);
+    if (file1.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QTextStream out1(&file1);
+        QApplication::setOverrideCursor(Qt::WaitCursor);//鼠标指针变为等待状态
+        out1 << "AH13012400,PASS, , ,0, ,";
+        QApplication::restoreOverrideCursor();//鼠标指针恢复原来的状态
+        file1.close();
+    }
+}
+
+void MainWindow::startTestTimerTimeout()//只用于ICT测试---------------------
+{
+    QString msg = QString("%1%2%3").arg(client->prefix).arg("Test ready").arg(client->suffix);
+    client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
+    showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
+
+}
+
+void MainWindow::sortCompleteTimerTimeout()//只用于ICT测试---------------------
+{
+    QString msg = QString("%1%2%3").arg(client->prefix).arg("Sort complete").arg(client->suffix);
+    client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
+    showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
 }
