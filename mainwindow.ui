@@ -19,30 +19,10 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="6" column="1">
-     <widget class="QLineEdit" name="lineEdit_serverPort_send"/>
-    </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="lineEdit_serverIP"/>
-    </item>
-    <item row="0" column="5">
-     <widget class="QLabel" name="label_4">
-      <property name="text">
-       <string>前缀</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>端口号</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="0">
-     <widget class="QLabel" name="label">
-      <property name="text">
-       <string>服务器IP</string>
+    <item row="0" column="6">
+     <widget class="QComboBox" name="comboBox_prefix">
+      <property name="editable">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -53,12 +33,32 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="6">
-     <widget class="QComboBox" name="comboBox_prefix">
-      <property name="editable">
-       <bool>true</bool>
+    <item row="0" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>服务器IP</string>
       </property>
      </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>端口号</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="5">
+     <widget class="QLabel" name="label_4">
+      <property name="text">
+       <string>前缀</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLineEdit" name="lineEdit_serverIP"/>
+    </item>
+    <item row="7" column="1">
+     <widget class="QLineEdit" name="lineEdit_serverPort_send"/>
     </item>
     <item row="1" column="6">
      <widget class="QComboBox" name="comboBox_suffix">
@@ -80,13 +80,6 @@
         <string>\r\n</string>
        </property>
       </item>
-     </widget>
-    </item>
-    <item row="1" column="12">
-     <widget class="QPushButton" name="pushButton_clear">
-      <property name="text">
-       <string>清空接收</string>
-      </property>
      </widget>
     </item>
     <item row="0" column="8">
@@ -116,6 +109,57 @@
       </property>
      </spacer>
     </item>
+    <item row="1" column="12">
+     <widget class="QPushButton" name="pushButton_clear">
+      <property name="text">
+       <string>清空接收</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1">
+     <widget class="QLineEdit" name="lineEdit_serverIP_send"/>
+    </item>
+    <item row="7" column="0">
+     <widget class="QLabel" name="label_5">
+      <property name="text">
+       <string>接收端口</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="2" colspan="8">
+     <widget class="QLineEdit" name="lineEdit_input"/>
+    </item>
+    <item row="0" column="9">
+     <widget class="QPushButton" name="pushButton_creat">
+      <property name="text">
+       <string>创建连接</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="5">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>后缀</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0" colspan="13">
+     <widget class="QTextBrowser" name="textBrowser_show_msg"/>
+    </item>
+    <item row="3" column="12">
+     <widget class="QCheckBox" name="checkBox_pauseShow">
+      <property name="text">
+       <string>暂停显示</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="9">
+     <widget class="QCheckBox" name="checkBox_saveLog">
+      <property name="text">
+       <string>保存log</string>
+      </property>
+     </widget>
+    </item>
     <item row="1" column="7">
      <spacer name="horizontalSpacer_2">
       <property name="orientation">
@@ -129,15 +173,19 @@
       </property>
      </spacer>
     </item>
-    <item row="4" column="0">
+    <item row="5" column="0">
      <widget class="QLabel" name="label_6">
       <property name="text">
        <string>接收IP</string>
       </property>
      </widget>
     </item>
-    <item row="4" column="1">
-     <widget class="QLineEdit" name="lineEdit_serverIP_send"/>
+    <item row="7" column="12">
+     <widget class="QPushButton" name="pushButton_send">
+      <property name="text">
+       <string>发送</string>
+      </property>
+     </widget>
     </item>
     <item row="0" column="12">
      <widget class="QPushButton" name="pushButton_delete">
@@ -146,54 +194,13 @@
       </property>
      </widget>
     </item>
-    <item row="6" column="12">
-     <widget class="QPushButton" name="pushButton_send">
-      <property name="text">
-       <string>发送</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0" colspan="13">
-     <widget class="QTextBrowser" name="textBrowser_show_msg"/>
-    </item>
-    <item row="1" column="5">
-     <widget class="QLabel" name="label_3">
-      <property name="text">
-       <string>后缀</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="9">
-     <widget class="QPushButton" name="pushButton_creat">
-      <property name="text">
-       <string>创建连接</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0">
-     <widget class="QLabel" name="label_5">
-      <property name="text">
-       <string>接收端口</string>
-      </property>
-     </widget>
-    </item>
     <item row="1" column="1">
      <widget class="QLineEdit" name="lineEdit_serverPort"/>
     </item>
-    <item row="6" column="2" colspan="8">
-     <widget class="QLineEdit" name="lineEdit_input"/>
-    </item>
     <item row="2" column="9">
-     <widget class="QCheckBox" name="checkBox_saveLog">
+     <widget class="QPushButton" name="pushButton_timer">
       <property name="text">
-       <string>保存log</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="12">
-     <widget class="QCheckBox" name="checkBox_pauseShow">
-      <property name="text">
-       <string>暂停显示</string>
+       <string>加载定时文件</string>
       </property>
      </widget>
     </item>

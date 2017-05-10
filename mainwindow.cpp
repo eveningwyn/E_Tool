@@ -10,10 +10,10 @@
 
 #define TIMER_TIME_OUT 500
 
-#define PRO_VERSION "V1.00"
+#define PRO_VERSION "V1.01"
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-05-01\n")).arg(PRO_VERSION));
+    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-05-010\n")).arg(PRO_VERSION));
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -32,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     msgFileName = "";
     logFileName = "";
+    timerFileName = "";
     client_disconn = true;;
 
     initDoneTimer = new QTimer(this);
@@ -42,6 +43,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(writeFileTimer,&QTimer::timeout,this,&MainWindow::writeFileTimerTimeout);
     connect(startTestTimer,&QTimer::timeout,this,&MainWindow::startTestTimerTimeout);
     connect(sortCompleteTimer,&QTimer::timeout,this,&MainWindow::sortCompleteTimerTimeout);
+    startTimer(1000);
 }
 
 MainWindow::~MainWindow()
@@ -192,17 +194,18 @@ void MainWindow::server_ReadData(QString IP, int Port, QString readMsg)
     showInformation(1,QString("%1 %2:%3").arg(IP).arg(Port).arg(readMsg));
     readMsg.replace(server->prefix,"");
     readMsg.replace(server->suffix,"");
-    checkMsg(readMsg);
+    int sleep_time;
+    checkMsg(readMsg,sleep_time);
     if(!readMsg.isEmpty())
     {
-        QThread::msleep(100);
+        QThread::msleep(sleep_time);
         readMsg = QString("%1%2%3").arg(server->prefix).arg(readMsg).arg(server->suffix);
         server->sendData((quint16) Port,readMsg);
         showInformation(0,QString("%1 %2:%3").arg(IP).arg(Port).arg(readMsg));
     }
 }
 
-void MainWindow::checkMsg(QString &msg)
+void MainWindow::checkMsg(QString &msg, int &sleep_time)
 {
     QString strTemp = msg;
     QFile msgFile(msgFileName);
@@ -210,7 +213,7 @@ void MainWindow::checkMsg(QString &msg)
     {
         QTextStream txtInput(&msgFile);
         QString lineStr;
-        QRegExp msgRE("(.*),(.*)");
+        QRegExp msgRE("(.*),(.*),(.*)");
         while(!txtInput.atEnd())
         {
             lineStr = txtInput.readLine();
@@ -219,6 +222,7 @@ void MainWindow::checkMsg(QString &msg)
                 if(msgRE.cap(1).contains(msg))
                 {
                     msg = msgRE.cap(2);
+                    sleep_time = msgRE.cap(3).toInt();
                     break;
                 }
             }
@@ -228,6 +232,10 @@ void MainWindow::checkMsg(QString &msg)
     if(strTemp == msg)
     {
         msg = "";
+    }
+    if(0 >= sleep_time)
+    {
+        sleep_time = 500;
     }
 }
 
@@ -324,9 +332,7 @@ void MainWindow::client_readData(int clientID, QString IP, int Port, QString msg
         if (file.open(QIODevice::WriteOnly | QIODevice::Text))
         {
             QTextStream out(&file);
-            QApplication::setOverrideCursor(Qt::WaitCursor);//鼠标指针变为等待状态
             out << "C4-L1N,A,ICT,J1741705,3I1101, ,ICT_V04R03,AH13012400,P, , ,0,";
-            QApplication::restoreOverrideCursor();//鼠标指针恢复原来的状态
             file.close();
         }
     }
@@ -338,10 +344,11 @@ void MainWindow::client_readData(int clientID, QString IP, int Port, QString msg
 
     msg.replace(client->prefix,"");
     msg.replace(client->suffix,"");
-    checkMsg(msg);
+    int sleep_time;
+    checkMsg(msg,sleep_time);
     if(!msg.isEmpty())
     {
-        QThread::msleep(100);
+        QThread::msleep(sleep_time);
         msg = QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix);
         client->clientSendData(msg);
         showInformation(0,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
@@ -408,9 +415,11 @@ void MainWindow::saveLog(QString strMsg)
         if(file.open(QFile::Append | QIODevice::Text))
         {
             QTextStream out(&file);
-            QApplication::setOverrideCursor(Qt::WaitCursor);    // 鼠标指针变为等待状态
             out << strMsg;
-            QApplication::restoreOverrideCursor();              // 鼠标指针恢复原来的状态
+            if(!file.flush())
+            {
+                qWarning("log文件刷新失败!");
+            }
             file.close();
         }
     }
@@ -431,9 +440,11 @@ void MainWindow::writeFileTimerTimeout()
     if (file1.open(QIODevice::WriteOnly | QIODevice::Text))
     {
         QTextStream out1(&file1);
-        QApplication::setOverrideCursor(Qt::WaitCursor);//鼠标指针变为等待状态
         out1 << "AH13012400,PASS, , ,0, ,";
-        QApplication::restoreOverrideCursor();//鼠标指针恢复原来的状态
+        if(!file1.flush())
+        {
+            qWarning("Request文件刷新失败!");
+        }
         file1.close();
     }
 }
@@ -451,4 +462,34 @@ void MainWindow::sortCompleteTimerTimeout()//只用于ICT测试-----------------
     QString msg = QString("%1%2%3").arg(client->prefix).arg("Sort complete").arg(client->suffix);
     client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
     showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
+}
+
+void MainWindow::on_pushButton_timer_clicked()
+{
+    timerFileName = QFileDialog::getOpenFileName(this,tr("load"),"..\\timer_list.txt");
+    if(!timerFileName.isEmpty())
+    {
+        showInformation(2,QString("加载定时文件%1成功!").arg(timerFileName));
+    }
+}
+
+void MainWindow::single_Timeout(QString id)
+{
+    if("1"==id)
+    {
+        qDebug("id1_timer");
+    }
+    if("2"==id)
+    {
+        qDebug("id2_timer");
+    }
+    if("3"==id)
+    {
+        qDebug("id3_timer");
+    }
+}
+
+void MainWindow::timerEvent(QTimerEvent *event)
+{
+    qDebug()<<event->timerId();
 }

@@ -25,6 +25,7 @@ public slots:
     void server_clientDisconnected(QString IP,int Port);
     void client_readData(int clientID,QString IP,int Port,QString msg);
     void client_clientDisConnect(int clientID,QString IP,int Port);
+    void single_Timeout(QString id);
 
 private slots:
     void on_pushButton_creat_clicked();
@@ -51,21 +52,30 @@ private slots:
 
     void sortCompleteTimerTimeout();//只用于ICT测试---------------------
 
+    void on_pushButton_timer_clicked();
+
 private:
     Ui::MainWindow *ui;
     TcpIpServer *server;
     TcpIpClient *client;
     void showInformation(uint index, QString msg);
     QMutex show_mutex;
-    void checkMsg(QString &msg);
+    void checkMsg(QString &msg, int &sleep_time);
     QString msgFileName;
     bool client_disconn;
     QString logFileName;
     void saveLog(QString strMsg);
+    QString timerFileName;
+    void check_timerMsg(QString msg, QString id);
+
     QTimer *initDoneTimer;//只用于ICT测试---------------------
     QTimer *writeFileTimer;//只用于ICT测试---------------------
     QTimer *startTestTimer;//只用于ICT测试---------------------
     QTimer *sortCompleteTimer;//只用于ICT测试---------------------
+
+protected:
+    virtual void timerEvent(QTimerEvent *event);
+
 };
 
 #endif // MAINWINDOW_H
