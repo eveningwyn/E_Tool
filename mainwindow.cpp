@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
     logFileName = "";
     timerFileName = "";
     timer_iniFileName = TEMPTIMER;
-    client_disconn = true;;
+    client_disconn = true;
 }
 
 MainWindow::~MainWindow()
