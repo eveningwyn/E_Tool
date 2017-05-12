@@ -52,9 +52,9 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     QDir *temp = new QDir;
-    if(!temp->exists(QString("").arg("..\\log")))
+    if(!temp->exists("../log"))
     {
-        temp->mkdir(QString("").arg("..\\log"));
+        temp->mkdir("../log");
     }
     delete temp;
     qInstallMessageHandler(outputMessage);

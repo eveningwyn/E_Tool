@@ -25,7 +25,6 @@ public slots:
     void server_clientDisconnected(QString IP,int Port);
     void client_readData(int clientID,QString IP,int Port,QString msg);
     void client_clientDisConnect(int clientID,QString IP,int Port);
-    void single_Timeout(QString id);
 
 private slots:
     void on_pushButton_creat_clicked();
@@ -44,14 +43,6 @@ private slots:
 
     void on_actionAbout_triggered();
 
-    void initDoneTimerTimeout();//只用于ICT测试---------------------
-
-    void writeFileTimerTimeout();//只用于ICT测试---------------------
-
-    void startTestTimerTimeout();//只用于ICT测试---------------------
-
-    void sortCompleteTimerTimeout();//只用于ICT测试---------------------
-
     void on_pushButton_timer_clicked();
 
 private:
@@ -66,12 +57,8 @@ private:
     QString logFileName;
     void saveLog(QString strMsg);
     QString timerFileName;
-    void check_timerMsg(QString msg, QString id);
-
-    QTimer *initDoneTimer;//只用于ICT测试---------------------
-    QTimer *writeFileTimer;//只用于ICT测试---------------------
-    QTimer *startTestTimer;//只用于ICT测试---------------------
-    QTimer *sortCompleteTimer;//只用于ICT测试---------------------
+    QString timer_iniFileName;
+    void check_timerMsg(QString sendMsg);
 
 protected:
     virtual void timerEvent(QTimerEvent *event);

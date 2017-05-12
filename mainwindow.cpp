@@ -7,13 +7,15 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QThread>
+#include <QSettings>
 
 #define TIMER_TIME_OUT 500
+#define TEMPTIMER "tempTimer.ini"
 
 #define PRO_VERSION "V1.01"
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-05-010\n")).arg(PRO_VERSION));
+    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-05-12\n")).arg(PRO_VERSION));
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -33,17 +35,8 @@ MainWindow::MainWindow(QWidget *parent) :
     msgFileName = "";
     logFileName = "";
     timerFileName = "";
+    timer_iniFileName = TEMPTIMER;
     client_disconn = true;;
-
-    initDoneTimer = new QTimer(this);
-    writeFileTimer = new QTimer(this);
-    startTestTimer = new QTimer(this);
-    sortCompleteTimer = new QTimer(this);
-    connect(initDoneTimer,&QTimer::timeout,this,&MainWindow::initDoneTimerTimeout);
-    connect(writeFileTimer,&QTimer::timeout,this,&MainWindow::writeFileTimerTimeout);
-    connect(startTestTimer,&QTimer::timeout,this,&MainWindow::startTestTimerTimeout);
-    connect(sortCompleteTimer,&QTimer::timeout,this,&MainWindow::sortCompleteTimerTimeout);
-    startTimer(1000);
 }
 
 MainWindow::~MainWindow()
@@ -52,6 +45,9 @@ MainWindow::~MainWindow()
     {
         on_pushButton_delete_clicked();
     }
+    QSettings *configWrite = new QSettings(timer_iniFileName, QSettings::IniFormat);
+    configWrite->clear();
+    delete configWrite;
     delete ui;
 }
 
@@ -195,9 +191,12 @@ void MainWindow::server_ReadData(QString IP, int Port, QString readMsg)
     readMsg.replace(server->prefix,"");
     readMsg.replace(server->suffix,"");
     int sleep_time;
-    checkMsg(readMsg,sleep_time);
+    if(!msgFileName.isEmpty())
+        checkMsg(readMsg,sleep_time);
     if(!readMsg.isEmpty())
     {
+        if(!timerFileName.isEmpty())
+            check_timerMsg(readMsg);
         QThread::msleep(sleep_time);
         readMsg = QString("%1%2%3").arg(server->prefix).arg(readMsg).arg(server->suffix);
         server->sendData((quint16) Port,readMsg);
@@ -254,6 +253,8 @@ void MainWindow::on_pushButton_send_clicked()
             QString portTemp = ui->lineEdit_serverPort_send->text();
             if(!portTemp.isEmpty())
             {
+                if(!timerFileName.isEmpty())
+                    check_timerMsg(sendStr);
                 sendStr = QString("%1%2%3").arg(server->prefix).arg(sendStr).arg(server->suffix);
                 server->sendData((quint16)portTemp.toInt(), sendStr);
                 showInformation(0,QString("%1 %2:%3").arg(ipTemp).arg(portTemp).arg(sendStr));
@@ -268,9 +269,14 @@ void MainWindow::on_pushButton_send_clicked()
     {
         if(1==ui->comboBox_server_client->currentIndex())//客户端
         {
-            sendStr = QString("%1%2%3").arg(client->prefix).arg(sendStr).arg(client->suffix);
-            client->clientSendData(sendStr);
-            showInformation(0,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(sendStr));
+            if(!ui->pushButton_creat->isEnabled())
+            {
+                if(!timerFileName.isEmpty())
+                    check_timerMsg(sendStr);
+                sendStr = QString("%1%2%3").arg(client->prefix).arg(sendStr).arg(client->suffix);
+                client->clientSendData(sendStr);
+                showInformation(0,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(sendStr));
+            }
         }
     }
 }
@@ -316,69 +322,19 @@ void MainWindow::client_readData(int clientID, QString IP, int Port, QString msg
     Port = ui->lineEdit_serverPort->text().toInt();
     showInformation(1,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
 
-    if(msg.contains("@Robot init done ACK"))//只用于ICT测试---------------------
-    {
-        if(initDoneTimer->isActive())
-            initDoneTimer->stop();
-    }
-    if(msg.contains("@Test ready ACK"))//只用于ICT测试---------------------
-    {
-        if(startTestTimer->isActive())
-            startTestTimer->stop();
-
-        QThread::msleep(100);
-        QString ICT_path = QString("%1:\\%2").arg("V").arg("PDM&ERP/UR/Result.txt");
-        QFile file(ICT_path);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
-            QTextStream out(&file);
-            out << "C4-L1N,A,ICT,J1741705,3I1101, ,ICT_V04R03,AH13012400,P, , ,0,";
-            file.close();
-        }
-    }
-    if(msg.contains("@Sort complete ACK"))//只用于ICT测试---------------------
-    {
-        if(sortCompleteTimer->isActive())
-            sortCompleteTimer->stop();
-    }
-
     msg.replace(client->prefix,"");
     msg.replace(client->suffix,"");
     int sleep_time;
-    checkMsg(msg,sleep_time);
+    if(!msgFileName.isEmpty())
+        checkMsg(msg,sleep_time);
     if(!msg.isEmpty())
     {
+        if(!timerFileName.isEmpty())
+            check_timerMsg(msg);
         QThread::msleep(sleep_time);
         msg = QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix);
         client->clientSendData(msg);
         showInformation(0,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
-
-        if(msg.contains("@Robot init ACK"))//只用于ICT测试---------------------
-        {
-            if(!initDoneTimer->isActive())
-                initDoneTimer->start(TIMER_TIME_OUT);
-            return;
-        }
-        if(msg.contains("@Read SN Done ACK"))//只用于ICT测试---------------------
-        {
-            if(!writeFileTimer->isActive())
-                writeFileTimer->start(TIMER_TIME_OUT);
-            return;
-        }
-        if(msg.contains("@Scan done ACK"))//只用于ICT测试---------------------
-        {
-            if(!startTestTimer->isActive())
-                startTestTimer->start(TIMER_TIME_OUT);
-            if(writeFileTimer->isActive())
-                writeFileTimer->stop();
-            return;
-        }
-        if(msg.contains("@Pass done ACK") || msg.contains("@Fail done ACK"))//只用于ICT测试---------------------
-        {
-            if(!sortCompleteTimer->isActive())
-                sortCompleteTimer->start(TIMER_TIME_OUT);
-            return;
-        }
     }
 }
 
@@ -425,71 +381,99 @@ void MainWindow::saveLog(QString strMsg)
     }
 }
 
-void MainWindow::initDoneTimerTimeout()//只用于ICT测试---------------------
-{
-    QString msg = QString("%1%2%3").arg(client->prefix).arg("Robot init done").arg(client->suffix);
-    client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
-    showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
-}
-
-void MainWindow::writeFileTimerTimeout()
-{
-    QThread::msleep(100);
-    QString ICT_path = QString("%1:\\%2").arg("V").arg("PDM&ERP/UR/Request.txt");
-    QFile file1(ICT_path);
-    if (file1.open(QIODevice::WriteOnly | QIODevice::Text))
-    {
-        QTextStream out1(&file1);
-        out1 << "AH13012400,PASS, , ,0, ,";
-        if(!file1.flush())
-        {
-            qWarning("Request文件刷新失败!");
-        }
-        file1.close();
-    }
-}
-
-void MainWindow::startTestTimerTimeout()//只用于ICT测试---------------------
-{
-    QString msg = QString("%1%2%3").arg(client->prefix).arg("Test ready").arg(client->suffix);
-    client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
-    showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
-
-}
-
-void MainWindow::sortCompleteTimerTimeout()//只用于ICT测试---------------------
-{
-    QString msg = QString("%1%2%3").arg(client->prefix).arg("Sort complete").arg(client->suffix);
-    client->clientSendData(QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix));
-    showInformation(0,QString("%1 %2:%3").arg(client->peerAddress().toString()).arg(client->peerPort()).arg(msg));
-}
-
 void MainWindow::on_pushButton_timer_clicked()
 {
     timerFileName = QFileDialog::getOpenFileName(this,tr("load"),"..\\timer_list.txt");
     if(!timerFileName.isEmpty())
     {
+        timer_iniFileName = QFileDialog::getSaveFileName(this,NULL,timer_iniFileName);
+        if(timer_iniFileName.isEmpty())
+        {
+            timerFileName = "";
+            timer_iniFileName = "";
+            return;
+        }
         showInformation(2,QString("加载定时文件%1成功!").arg(timerFileName));
+        QSettings *configWrite = new QSettings(timer_iniFileName, QSettings::IniFormat);
+        configWrite->clear();
+        delete configWrite;
     }
 }
 
-void MainWindow::single_Timeout(QString id)
+void MainWindow::check_timerMsg(QString sendMsg)
 {
-    if("1"==id)
+    QFile msgFile(timerFileName);
+    if(msgFile.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        qDebug("id1_timer");
-    }
-    if("2"==id)
-    {
-        qDebug("id2_timer");
-    }
-    if("3"==id)
-    {
-        qDebug("id3_timer");
+        QTextStream txtInput(&msgFile);
+        QString lineStr;
+        QRegExp msgRE("(.*),(.*),(.*)");
+        while(!txtInput.atEnd())
+        {
+            lineStr = txtInput.readLine();
+            if(0 <= lineStr.indexOf(msgRE))
+            {
+                if(msgRE.cap(1).contains(sendMsg))
+                {
+                    QString msg_temp = msgRE.cap(2);
+                    int timer_time = msgRE.cap(3).toInt();
+                    if(0>=timer_time)
+                    {
+                        timer_time = 1000;
+                    }
+                    QString IDstr = QString("%1").arg(this->startTimer(timer_time));
+                    QSettings *configWrite = new QSettings(timer_iniFileName, QSettings::IniFormat);
+                    configWrite->setValue(IDstr, msg_temp);
+                    delete configWrite;
+                    break;
+                }
+            }
+        }
+        msgFile.close();
     }
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-    qDebug()<<event->timerId();
+    QString timer_ID = QString("%1").arg(event->timerId());
+    QSettings *configRead = new QSettings(timer_iniFileName, QSettings::IniFormat);
+    QString send_msg_timer = configRead->value(timer_ID).toString();
+    delete configRead;
+    if(send_msg_timer.isEmpty())
+    {
+        return;
+    }
+    if(0==ui->comboBox_server_client->currentIndex())//服务器
+    {
+        if(!ui->pushButton_creat->isEnabled())
+        {
+            QString ipTemp = ui->lineEdit_serverIP_send->text();
+            QString portTemp = ui->lineEdit_serverPort_send->text();
+            if(!portTemp.isEmpty())
+            {
+                send_msg_timer = QString("%1%2%3").arg(server->prefix).arg(send_msg_timer).arg(server->suffix);
+                server->sendData((quint16)portTemp.toInt(), send_msg_timer);
+                showInformation(0,QString("%1 %2:%3").arg(ipTemp).arg(portTemp).arg(send_msg_timer));
+            }
+            else
+            {
+                QMessageBox::warning(this,NULL,tr("请输入一个正确的端口号!"));
+            }
+        }
+    }
+    else
+    {
+        if(1==ui->comboBox_server_client->currentIndex())//客户端
+        {
+            if(!ui->pushButton_creat->isEnabled())
+            {
+                if(!timerFileName.isEmpty())
+                    check_timerMsg(send_msg_timer);
+                send_msg_timer = QString("%1%2%3").arg(client->prefix).arg(send_msg_timer).arg(client->suffix);
+                client->clientSendData(send_msg_timer);
+                showInformation(0,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(send_msg_timer));
+            }
+        }
+    }
+    this->killTimer(event->timerId());
 }
