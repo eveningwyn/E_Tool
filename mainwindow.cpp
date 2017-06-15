@@ -12,10 +12,10 @@
 #define TIMER_TIME_OUT 500
 #define TEMPTIMER "tempTimer.ini"
 
-#define PRO_VERSION "V1.01"
+#define PRO_VERSION "V1.02"
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-05-12\n")).arg(PRO_VERSION));
+    QMessageBox::about(this,NULL,QString(tr("\nVersion: %1\n\nBuilt on 2017-06-15\n")).arg(PRO_VERSION));
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -32,19 +32,29 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_serverIP_send->setValidator(new QRegExpValidator(regExpIP,this));
     ui->lineEdit_serverPort_send->setValidator(new QRegExpValidator(regExpNetPort,this));
 
+    client = new TcpIpClient(this);
+    connect(client,&TcpIpClient::readData,this,&MainWindow::client_readData);
+    connect(client,&TcpIpClient::clientDisConnect,this,&MainWindow::client_clientDisConnect);
+//    server = new TcpIpServer(this);
+//    connect(server,&TcpIpServer::serverReadData,this,&MainWindow::server_ReadData);
+//    connect(server,&TcpIpServer::clientConnect,this,&MainWindow::server_clientConnect);
+//    connect(server,&TcpIpServer::clientDisconnected,this,&MainWindow::server_clientDisconnected);
     msgFileName = "";
     logFileName = "";
     timerFileName = "";
     timer_iniFileName = TEMPTIMER;
     client_disconn = true;
+//    ui->lineEdit_serverIP->setText("192.168.3.11");
+//    ui->lineEdit_serverPort->setText("4000");
 }
 
 MainWindow::~MainWindow()
 {
-    if(!ui->pushButton_creat->isEnabled())
-    {
-        on_pushButton_delete_clicked();
-    }
+//    if(!ui->pushButton_creat->isEnabled())
+//    {
+//        on_pushButton_delete_clicked();
+//    }
+    delete client;
     QSettings *configWrite = new QSettings(timer_iniFileName, QSettings::IniFormat);
     configWrite->clear();
     delete configWrite;
@@ -61,7 +71,7 @@ void MainWindow::on_pushButton_creat_clicked()
     suffix.replace("\\n","\n");
     if(""==server_IP || ""==server_Port)
     {
-        showInformation(2,tr("IP地址或者端口号不能为空!"));
+        showInformation(SHOW_NULL,tr("IP地址或者端口号不能为空!"));
         return;
     }
     if(0==ui->comboBox_server_client->currentIndex())//服务器
@@ -73,28 +83,28 @@ void MainWindow::on_pushButton_creat_clicked()
 
         if(!server->stratListen(server_IP,(quint16)server_Port.toInt()))
         {
-            showInformation(2,QString("%1 %2服务器创建失败!").arg(server_IP).arg(server_Port));
+            showInformation(SHOW_NULL,QString("%1 %2服务器创建失败!").arg(server_IP).arg(server_Port));
             return;
         }
-        showInformation(2,QString("%1 %2服务器创建成功!").arg(server_IP).arg(server_Port));
+        showInformation(SHOW_NULL,QString("%1 %2服务器创建成功!").arg(server_IP).arg(server_Port));
         server->set_prefix_suffix(prefix,suffix);
     }
     else
     {
         if(1==ui->comboBox_server_client->currentIndex())//客户端
         {
-            client = new TcpIpClient(this);
-            connect(client,&TcpIpClient::readData,this,&MainWindow::client_readData);
-            connect(client,&TcpIpClient::clientDisConnect,this,&MainWindow::client_clientDisConnect);
+//            client = new TcpIpClient(this);
+//            connect(client,&TcpIpClient::readData,this,&MainWindow::client_readData);
+//            connect(client,&TcpIpClient::clientDisConnect,this,&MainWindow::client_clientDisConnect);
 
             if(!client->newConnect(server_IP, (quint16)server_Port.toInt()))
             {
                 client_disconn = true;
-                showInformation(2,QString("连接服务器%1 %2失败!").arg(server_IP).arg(server_Port));
+                showInformation(SHOW_NULL,QString("连接服务器%1 %2失败!").arg(server_IP).arg(server_Port));
                 return;
             }
             client_disconn = false;
-            showInformation(2,QString("连接服务器%1 %2成功!").arg(server_IP).arg(server_Port));
+            showInformation(SHOW_NULL,QString("连接服务器%1 %2成功!").arg(server_IP).arg(server_Port));
             client->prefix = prefix;
             client->suffix = suffix;
         }
@@ -113,19 +123,19 @@ void MainWindow::showInformation(uint index, QString msg)
     show_mutex.lock();
     QString time = QDateTime::currentDateTime().toString("yyyyMMdd_hh:mm:ss_zzz");
     QString senderStr;
-    if(0==index)
+    if(SHOW_SENDER==index)
     {
         senderStr = "Send to";
     }
     else
     {
-        if(1==index)
+        if(SHOW_RECEIVE==index)
         {
             senderStr = "Receive from";
         }
         else
         {
-            if(2==index)
+            if(SHOW_NULL==index)
             {
                 senderStr = "";
             }
@@ -159,9 +169,8 @@ void MainWindow::on_pushButton_delete_clicked()
     {
         server->close();
         server->deleteServer();
-        QThread::msleep(500);
         delete server;
-        showInformation(2,QString("服务器已删除!"));
+        showInformation(SHOW_NULL,QString("服务器已删除!"));
     }
     else
     {
@@ -169,13 +178,13 @@ void MainWindow::on_pushButton_delete_clicked()
         {
             if(false==client_disconn)
             {
-                client->closeConnect();
-                QThread::msleep(500);
-                delete client;
+                //client->closeConnect();
+                //delete client;
             }
-            showInformation(2,QString("客户端已删除!"));
+            showInformation(SHOW_NULL,QString("客户端已删除!"));
         }
     }
+    QThread::msleep(500);
     ui->pushButton_creat->setDisabled(false);
     ui->comboBox_server_client->setDisabled(false);
     ui->pushButton_delete->setDisabled(true);
@@ -187,20 +196,22 @@ void MainWindow::on_pushButton_delete_clicked()
 
 void MainWindow::server_ReadData(QString IP, int Port, QString readMsg)
 {
-    showInformation(1,QString("%1 %2:%3").arg(IP).arg(Port).arg(readMsg));
+    showInformation(SHOW_RECEIVE,QString("%1 %2:%3").arg(IP).arg(Port).arg(readMsg));
     readMsg.replace(server->prefix,"");
     readMsg.replace(server->suffix,"");
-    int sleep_time;
+    int sleep_time = 0;
     if(!msgFileName.isEmpty())
-        checkMsg(readMsg,sleep_time);
-    if(!readMsg.isEmpty())
     {
-        if(!timerFileName.isEmpty())
-            check_timerMsg(readMsg);
-        QThread::msleep(sleep_time);
-        readMsg = QString("%1%2%3").arg(server->prefix).arg(readMsg).arg(server->suffix);
-        server->sendData((quint16) Port,readMsg);
-        showInformation(0,QString("%1 %2:%3").arg(IP).arg(Port).arg(readMsg));
+        checkMsg(readMsg,sleep_time);
+        if(!readMsg.isEmpty())
+        {
+            if(!timerFileName.isEmpty())
+                check_timerMsg(readMsg);
+            QThread::msleep(sleep_time);
+            readMsg = QString("%1%2%3").arg(server->prefix).arg(readMsg).arg(server->suffix);
+            server->sendData((quint16) Port,readMsg);
+            showInformation(SHOW_SENDER,QString("%1 %2:%3").arg(IP).arg(Port).arg(readMsg));
+        }
     }
 }
 
@@ -257,7 +268,7 @@ void MainWindow::on_pushButton_send_clicked()
                     check_timerMsg(sendStr);
                 sendStr = QString("%1%2%3").arg(server->prefix).arg(sendStr).arg(server->suffix);
                 server->sendData((quint16)portTemp.toInt(), sendStr);
-                showInformation(0,QString("%1 %2:%3").arg(ipTemp).arg(portTemp).arg(sendStr));
+                showInformation(SHOW_SENDER,QString("%1 %2:%3").arg(ipTemp).arg(portTemp).arg(sendStr));
             }
             else
             {
@@ -275,7 +286,7 @@ void MainWindow::on_pushButton_send_clicked()
                     check_timerMsg(sendStr);
                 sendStr = QString("%1%2%3").arg(client->prefix).arg(sendStr).arg(client->suffix);
                 client->clientSendData(sendStr);
-                showInformation(0,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(sendStr));
+                showInformation(SHOW_SENDER,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(sendStr));
             }
         }
     }
@@ -302,45 +313,47 @@ void MainWindow::on_pushButton_loadFile_clicked()
     msgFileName = QFileDialog::getOpenFileName(this,tr("load"),"..\\Message_list.txt");
     if(!msgFileName.isEmpty())
     {
-        showInformation(2,QString("加载通讯文件%1成功!").arg(msgFileName));
+        showInformation(SHOW_NULL,QString("加载通讯文件%1成功!").arg(msgFileName));
     }
 }
 
 void MainWindow::server_clientConnect(QString IP, int Port)
 {
-    showInformation(2,QString("客户端%1 %2已连接!").arg(IP).arg(Port));
+    showInformation(SHOW_NULL,QString("客户端%1 %2已连接!").arg(IP).arg(Port));
 }
 
 void MainWindow::server_clientDisconnected(QString IP, int Port)
 {
-    showInformation(2,QString("客户端%1 %2已断开!").arg(IP).arg(Port));
+    showInformation(SHOW_NULL,QString("客户端%1 %2已断开!").arg(IP).arg(Port));
 }
 
 void MainWindow::client_readData(int clientID, QString IP, int Port, QString msg)
 {
     IP = ui->lineEdit_serverIP->text();
     Port = ui->lineEdit_serverPort->text().toInt();
-    showInformation(1,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
+    showInformation(SHOW_RECEIVE,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
 
     msg.replace(client->prefix,"");
     msg.replace(client->suffix,"");
-    int sleep_time;
+    int sleep_time = 0;
     if(!msgFileName.isEmpty())
-        checkMsg(msg,sleep_time);
-    if(!msg.isEmpty())
     {
-        if(!timerFileName.isEmpty())
-            check_timerMsg(msg);
-        QThread::msleep(sleep_time);
-        msg = QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix);
-        client->clientSendData(msg);
-        showInformation(0,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
+        checkMsg(msg,sleep_time);
+        if(!msg.isEmpty())
+        {
+            if(!timerFileName.isEmpty())
+                check_timerMsg(msg);
+            QThread::msleep(sleep_time);
+            msg = QString("%1%2%3").arg(client->prefix).arg(msg).arg(client->suffix);
+            client->clientSendData(msg);
+            showInformation(SHOW_SENDER,QString("%1 %2:%3").arg(IP).arg(Port).arg(msg));
+        }
     }
 }
 
 void MainWindow::client_clientDisConnect(int clientID, QString IP, int Port)
 {
-    showInformation(2,QString("断开服务器%1 %2连接!").arg(IP).arg(Port));
+    showInformation(SHOW_NULL,QString("断开服务器%1 %2连接!").arg(IP).arg(Port));
     client_disconn = true;
 }
 
@@ -355,7 +368,7 @@ void MainWindow::on_checkBox_saveLog_clicked()
             ui->checkBox_saveLog->setChecked(false);
             return;
         }
-        showInformation(2,QString("通讯信息将保存到文件%1当中!").arg(logFileName));
+        showInformation(SHOW_NULL,QString("通讯信息将保存到文件%1当中!").arg(logFileName));
     }
     else
     {
@@ -393,7 +406,7 @@ void MainWindow::on_pushButton_timer_clicked()
             timer_iniFileName = "";
             return;
         }
-        showInformation(2,QString("加载定时文件%1成功!").arg(timerFileName));
+        showInformation(SHOW_NULL,QString("加载定时文件%1成功!").arg(timerFileName));
         QSettings *configWrite = new QSettings(timer_iniFileName, QSettings::IniFormat);
         configWrite->clear();
         delete configWrite;
@@ -453,7 +466,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
             {
                 send_msg_timer = QString("%1%2%3").arg(server->prefix).arg(send_msg_timer).arg(server->suffix);
                 server->sendData((quint16)portTemp.toInt(), send_msg_timer);
-                showInformation(0,QString("%1 %2:%3").arg(ipTemp).arg(portTemp).arg(send_msg_timer));
+                showInformation(SHOW_SENDER,QString("%1 %2:%3").arg(ipTemp).arg(portTemp).arg(send_msg_timer));
             }
             else
             {
@@ -471,7 +484,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
                     check_timerMsg(send_msg_timer);
                 send_msg_timer = QString("%1%2%3").arg(client->prefix).arg(send_msg_timer).arg(client->suffix);
                 client->clientSendData(send_msg_timer);
-                showInformation(0,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(send_msg_timer));
+                showInformation(SHOW_SENDER,QString("%1 %2:%3").arg(ui->lineEdit_serverIP->text()).arg(ui->lineEdit_serverPort->text()).arg(send_msg_timer));
             }
         }
     }

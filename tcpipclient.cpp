@@ -11,7 +11,7 @@ TcpIpClient::TcpIpClient(QObject *parent) :
 
     connect(this,&TcpIpClient::readyRead,this,&TcpIpClient::clientReadData);
     connect(this,&TcpIpClient::disconnected,this,&TcpIpClient::DisConnect);//关闭连接时，发送断开连接信号
-    connect(this,&TcpIpClient::disconnected,this,&TcpIpClient::deleteLater);//关闭连接时，对象自动删除
+//    connect(this,&TcpIpClient::disconnected,this,&TcpIpClient::deleteLater);//关闭连接时，对象自动删除
 }
 
 void TcpIpClient::clientSendData(QString msg)

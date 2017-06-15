@@ -59,6 +59,12 @@ private:
     QString timerFileName;
     QString timer_iniFileName;
     void check_timerMsg(QString sendMsg);
+    enum SHOW_MSG
+    {
+        SHOW_SENDER,
+        SHOW_RECEIVE,
+        SHOW_NULL,
+    };
 
 protected:
     virtual void timerEvent(QTimerEvent *event);
